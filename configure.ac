@@ -10,7 +10,6 @@ AS_IF([test "x$enable_debug" = "xyes"],
       [CXXFLAGS="${CXXFLAGS} -g -Wno-return-type -Wall -Wextra -Wnon-virtual-dtor -O0"],
       [CXXFLAGS="${CXXFLAGS} -O3"])
 
-AC_PROG_CC
 AC_PROG_CXX
 AM_PROG_AR
 
