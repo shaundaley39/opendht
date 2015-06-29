@@ -45,12 +45,12 @@ extern "C" {
 using namespace dht;
 
 struct snode_compare {
-    bool operator() (const std::shared_ptr<Dht::Node>& lhs, const std::shared_ptr<Dht::Node>& rhs) const{
+    bool operator() (const std::shared_ptr<Node>& lhs, const std::shared_ptr<Node>& rhs) const{
         return lhs->id < rhs->id;
     }
 };
 
-using NodeSet = std::set<std::shared_ptr<Dht::Node>, snode_compare>;
+using NodeSet = std::set<std::shared_ptr<Node>, snode_compare>;
 std::condition_variable cv;
 
 void
@@ -60,7 +60,7 @@ step(DhtRunner& dht, std::atomic_uint& done, std::shared_ptr<NodeSet> all_nodes,
     done++;
     dht.get(cur_h, [all_nodes](const std::vector<std::shared_ptr<Value>>& values) {
         return true;
-    }, [&,all_nodes,cur_h,cur_depth](bool, const std::vector<std::shared_ptr<Dht::Node>>& nodes) {
+    }, [&,all_nodes,cur_h,cur_depth](bool, const std::vector<std::shared_ptr<Node>>& nodes) {
         all_nodes->insert(nodes.begin(), nodes.end());
         NodeSet sbuck {nodes.begin(), nodes.end()};
         if (not sbuck.empty()) {
