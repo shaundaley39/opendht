@@ -885,7 +885,7 @@ Dht::searchStep(Search& sr)
             const auto& type = getType(a.value->type);
             if (in) {
                 DHT_WARN("Storing local value");
-                    (sr.id, a.value);
+                storageStore(sr.id, a.value);
             }
             for (auto& n : sr.nodes) {
                 if (n.node->isExpired(now) or (n.candidate and t >= TARGET_NODES))
@@ -931,8 +931,8 @@ Dht::searchStep(Search& sr)
     unsigned i = 0;
     bool sent;
     do {
-        if (sent = searchSendGetValues(sr))
-            i++;
+        sent = searchSendGetValues(sr);
+        if (sent) i++;
     }
     while (sent and i < 3);
     DHT_DEBUG("searchStep, sent %u.", i);
@@ -1844,7 +1844,6 @@ Dht::dumpSearch(const Search& sr, std::ostream& out) const
     }
 
     out << " Common bits    InfoHash                          Conn. Get   Put IP" << std::endl;
-    unsigned i = 0;
     auto last_get = sr.getLastGetTime();
     for (const auto& n : sr.nodes) {
         out << std::setfill (' ') << std::setw(3) << InfoHash::commonBits(sr.id, n.node->id) << ' ' << n.node->id;
