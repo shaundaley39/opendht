@@ -746,6 +746,7 @@ Dht::Search::insertNode(std::shared_ptr<Node> node, time_point now, const Blob& 
         expired = false;
     }
     if (not token.empty()) {
+        std::cout << "Confirm GET " << print_addr(n->node->ss, n->node->sslen) << " (" << node->id << ") for search " << id << std::endl;
         n->getStatus.reply_time = now;
         n->getStatus.request_time = TIME_INVALID;
         if (n->candidate) {
@@ -862,7 +863,8 @@ Dht::searchStep(Search& sr)
                 if (not n.isSynced(now) or (n.candidate and t >= LISTEN_NODES))
                     continue;
                 if (n.getListenTime() <= now) {
-                    DHT_DEBUG("Sending listen to %s (%s).", print_addr(n.node->ss, n.node->sslen).c_str(), n.node->id.toString().c_str());
+                    //DHT_DEBUG("Sending listen to %s (%s).", print_addr(n.node->ss, n.node->sslen).c_str(), n.node->id.toString().c_str());
+                    std::cout << "Sending listen to " << print_addr(n.node->ss, n.node->sslen) << " (" << n.node->id << ")" << std::endl;
                     sendListen((sockaddr*)&n.node->ss, n.node->sslen, TransId {TransPrefix::LISTEN, sr.tid}, sr.id, n.token, n.node->reply_time >= now - UDP_REPLY_TIME);
                     n.pending = true;
                     n.listenStatus.request_time = now;
@@ -892,7 +894,8 @@ Dht::searchStep(Search& sr)
                 auto a_status = n.acked.find(vid);
                 auto at = n.getAnnounceTime(a_status, type);
                 if ( at <= now ) {
-                    DHT_DEBUG("Sending announce_value to %s (%s).", print_addr(n.node->ss, n.node->sslen).c_str(), n.node->id.toString().c_str());
+                    //DHT_DEBUG("Sending announce_value to %s (%s).", print_addr(n.node->ss, n.node->sslen).c_str(), n.node->id.toString().c_str());
+                    std::cout << "Sending announce_value to " << print_addr(n.node->ss, n.node->sslen) << " (" << n.node->id << ")" << std::endl;
                     sendAnnounceValue((sockaddr*)&n.node->ss, n.node->sslen,
                                        TransId {TransPrefix::ANNOUNCE_VALUES, sr.tid}, sr.id, *a.value,
                                        n.token, n.node->reply_time >= now - UDP_REPLY_TIME);
