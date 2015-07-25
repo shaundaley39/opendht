@@ -910,58 +910,62 @@ Dht::searchStep(Search& sr)
                     break;
             }
         }
-        for (auto& n : sr.nodes) {
-            if (n.pending) {
-                n.pending = false;
-                pinged(*n.node);
-            }
-        }
         if (sr.callbacks.empty() && sr.announce.empty() && sr.listeners.empty())
             sr.done = true;
     }
 
-    if (sr.get_step_time + SEARCH_GET_STEP >= now)
-        return;
-
-    unsigned i = 0;
-    bool sent, candidate;
-    do {
-        std::tie(sent, candidate) = searchSendGetValues(sr);
-        if (sent and not candidate)
-            i++;
-    }
-    while (sent and i < 3);
-    DHT_DEBUG("searchStep, sent %u.", i);
-
-    if (i > 0)
-        sr.get_step_time = now;
-    else if ((size_t)std::count_if(sr.nodes.begin(), sr.nodes.end(), [&](const SearchNode& sn) {
-                return sn.node->isExpired(now);
-            }) == sr.nodes.size())
-    {
-        sr.expired = true;
-        if (sr.announce.empty() && sr.listeners.empty()) {
-            // Listening or announcing requires keeping the cluster up to date.
-            sr.done = true;
-        }
-        {
-            auto get_cbs = std::move(sr.callbacks);
-            for (const auto& g : get_cbs) {
-                if (g.done_cb)
-                    g.done_cb(false, {});
+    if (sr.get_step_time + SEARCH_GET_STEP <= now) {
+        unsigned i = 0;
+        SearchNode* sent;
+        do {
+            sent = searchSendGetValues(sr);
+            if (sent) {
+                sent->pending = false;
+                if (not sent->candidate)
+                    i++;
             }
         }
+        while (sent and i < 3);
+        DHT_DEBUG("searchStep, sent %u.", i);
+
+        if (i > 0)
+            sr.get_step_time = now;
+        else if ((size_t)std::count_if(sr.nodes.begin(), sr.nodes.end(), [&](const SearchNode& sn) {
+                    return sn.node->isExpired(now);
+                }) == sr.nodes.size())
         {
-            std::vector<DoneCallback> a_cbs;
-            a_cbs.reserve(sr.announce.size());
-            for (const auto& a : sr.announce)
-                if (a.callback)
-                    a_cbs.emplace_back(std::move(a.callback));
-            for (const auto& a : a_cbs)
-                a(false, {});
+            // no nodes or all expired nodes
+            sr.expired = true;
+            if (sr.announce.empty() && sr.listeners.empty()) {
+                // Listening or announcing requires keeping the cluster up to date.
+                sr.done = true;
+            }
+            {
+                auto get_cbs = std::move(sr.callbacks);
+                for (const auto& g : get_cbs) {
+                    if (g.done_cb)
+                        g.done_cb(false, {});
+                }
+            }
+            {
+                std::vector<DoneCallback> a_cbs;
+                a_cbs.reserve(sr.announce.size());
+                for (const auto& a : sr.announce)
+                    if (a.callback)
+                        a_cbs.emplace_back(std::move(a.callback));
+                for (const auto& a : a_cbs)
+                    a(false, {});
+            }
         }
-        return;
     }
+
+    for (auto& n : sr.nodes) {
+        if (n.pending) {
+            n.pending = false;
+            pinged(*n.node);
+        }
+    }
+
 }
 
 
