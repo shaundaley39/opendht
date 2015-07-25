@@ -784,14 +784,14 @@ Dht::expireSearches()
     });
 }
 
-std::pair<bool, bool>
+Dht::SearchNode*
 Dht::searchSendGetValues(Search& sr, SearchNode* pn, bool update)
 {
     const time_point up = update ? sr.getLastGetTime() : time_point::min();
     SearchNode* n = nullptr;
     if (pn) {
         if (not pn->canGet(now, up))
-            return {false, false};
+            return nullptr;
         n = pn;
     } else {
         for (auto& sn : sr.nodes) {
@@ -801,7 +801,7 @@ Dht::searchSendGetValues(Search& sr, SearchNode* pn, bool update)
             }
         }
         if (not n)
-            return {false, false};
+            return nullptr;
     }
 
     DHT_WARN("Sending get_values to %s (%s) for %s (p %d last get %lf)",
@@ -820,7 +820,7 @@ Dht::searchSendGetValues(Search& sr, SearchNode* pn, bool update)
 
     //std::cout << "Sending GET to " << n->node->id << " for IPv" << (sr.af==AF_INET?'4':'6') << " search " << sr.id << " (now pinged " << n->node->pinged << ")" << std::endl;
 
-    return {true, n->candidate};
+    return n;
 }
 
 /* When a search is in progress, we periodically call search_step to send
@@ -2198,7 +2198,7 @@ Dht::processMessage(const uint8_t *buf, size_t buflen, const sockaddr *from, soc
                     cleared++;
                     n.getStatus.request_time = TIME_INVALID;
                     n.getStatus.reply_time = TIME_INVALID;
-                    if (searchSendGetValues(sr).first)
+                    if (searchSendGetValues(sr))
                         sr.get_step_time = now;
                     break;
                 }
@@ -2275,7 +2275,7 @@ Dht::processMessage(const uint8_t *buf, size_t buflen, const sockaddr *from, soc
                        requests in flight has decreased.  Let's push
                        another request. */
                     //std::cout << "Received reply from " << id << ", sending new message..." << std::endl;
-                    if (searchSendGetValues(*sr).first)
+                    if (searchSendGetValues(*sr))
                         sr->get_step_time = now;
                 }
             }
@@ -2324,7 +2324,7 @@ Dht::processMessage(const uint8_t *buf, size_t buflen, const sockaddr *from, soc
                         break;
                     }
                 /* See comment for gp above. */
-                if (searchSendGetValues(*sr).first)
+                if (searchSendGetValues(*sr))
                     sr->get_step_time = now;
 
                 // If the value was just successfully announced, call the callback
@@ -2351,7 +2351,7 @@ Dht::processMessage(const uint8_t *buf, size_t buflen, const sockaddr *from, soc
                         break;
                     }
                 /* See comment for gp above. */
-                if (searchSendGetValues(*sr).first)
+                if (searchSendGetValues(*sr))
                     sr->get_step_time = now;
             }
         } else {
